@@ -1,0 +1,51 @@
+{
+  "background_color": "rgb(10, 10, 10)",
+  "description": "Car boot sale AI treasure spotter",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "TreasureSpotter",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "TreasureSpotter",
+  "start_url": "/Treasure-Spotter-/",
+  "theme_color": "rgb(212, 160, 23)",
+  "icons": [
+    {
+      "src": "https://tiiny.host/favicon.ico",
+      "type": "image/x-icon",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://tiiny.host/assets/og.jpg",
+      "type": "image/jpeg",
+      "sizes": "1280x720",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": true,
+      "width": 1280,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://tiiny.host/favicon.ico",
+      "type": "image/x-icon",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ]
+}
