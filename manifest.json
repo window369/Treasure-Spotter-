@@ -1,0 +1,13 @@
+{
+  "name": "TreasureSpotter",
+  "short_name": "TreasureSpotter",
+  "description": "Car boot sale AI treasure spotter",
+  "start_url": "/Treasure-Spotter-/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#D4A017",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
