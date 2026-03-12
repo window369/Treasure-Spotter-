@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#D4A017">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TreasureSpotter">
+<meta name="description" content="AI-powered car boot sale treasure finder">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>TreasureSpotter</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #D4A017;
+    --gold-light: #F5C842;
+    --dark: #0A0A0A;
+    --dark2: #141414;
+    --dark3: #1E1E1E;
+    --border: #2A2A2A;
+    --text: #E8E8E8;
+    --muted: #666;
+    --green: #2ECC71;
+    --red: #E74C3C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
+  }
+
+  header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,10,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 26px;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span {
+    -webkit-text-fill-color: var(--muted);
+    font-size: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    display: block;
+    margin-top: -4px;
+  }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .status-dot.scanning { background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: pulse 0.7s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .status-text { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+  /* Install Banner */
+  #installBanner {
+    display: none;
+    background: linear-gradient(135deg, rgba(212,160,23,0.15), rgba(245,200,66,0.08));
+    border-bottom: 1px solid rgba(212,160,23,0.3);
+    padding: 10px 16px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #installBanner.show { display: flex; }
+
+  .install-text { flex: 1; font-size: 12px; color: var(--text); }
+  .install-text strong { color: var(--gold-light); }
+
+  .btn-install {
+    background: var(--gold);
+    color: var(--dark);
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-dismiss {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  /* Setup Screen */
+  #setup-screen { padding: 24px 18px; max-width: 480px; margin: 0 auto; }
+
+  .setup-card {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px;
+    margin-bottom: 14px;
+  }
+
+  .setup-card h2 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  .setup-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+  .steps { margin-bottom: 18px; }
+
+  .step { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--text); align-items: flex-start; }
+
+  .step-num {
+    min-width: 22px; height: 22px;
+    background: var(--gold);
+    color: var(--dark);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  .step a { color: var(--gold-light); text-decoration: none; }
+
+  input[type="password"] {
+    width: 100%;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 10px;
+  }
+  input:focus { border-color: var(--gold); }
+
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--dark);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 18px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+  /* App Screen */
+  #app-screen { display: none; }
+
+  .camera-wrap {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+  }
+
+  #video {
+    width: 100%;
+    display: block;
+    max-height: 52vh;
+    object-fit: cover;
+  }
+
+  #canvas { display: none; }
+
+  .cam-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .scanning .scan-line { opacity: 1; animation: scanMove 1.4s ease-in-out infinite; }
+  @keyframes scanMove { 0%{top:0} 100%{top:100%} }
+
+  .corner { position: absolute; width: 22px; height: 22px; border-color: var(--gold); border-style: solid; opacity: 0.7; }
+  .corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+  .alert-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0;
+    transition: opacity 0.4s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .alert-badge.show { opacity: 1; }
+  .alert-badge.treasure { background: var(--gold); color: var(--dark); }
+  .alert-badge.nothing { background: rgba(0,0,0,0.75); color: var(--muted); border: 1px solid var(--border); }
+
+  /* Controls */
+  .controls {
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .btn-scan {
+    flex: 1;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--dark);
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 19px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-scan:active { transform: scale(0.97); }
+  .btn-scan:disabled { opacity: 0.45; }
+
+  .btn-auto {
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 14px 14px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .btn-auto.active { background: rgba(212,160,23,0.15); border-color: var(--gold); color: var(--gold); }
+
+  .btn-settings {
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 14px 12px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  /* Interval bar */
+  .interval-bar {
+    padding: 8px 16px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark2);
+  }
+  .interval-bar.show { display: flex; }
+  .interval-bar label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .interval-btn {
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .interval-btn.active { background: rgba(212,160,23,0.2); border-color: var(--gold); color: var(--gold); }
+
+  /* Stats bar */
+  .stats-bar {
+    padding: 8px 16px;
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark2);
+  }
+
+  .stat { text-align: center; }
+  .stat-val { font-family: 'Bebas Neue', cursive; font-size: 20px; color: var(--gold); letter-spacing: 1px; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Results */
+  #results {
+    padding: 14px 16px;
+    overflow-y: auto;
+    max-height: calc(100vh - 52vh - 180px);
+  }
+  #results::-webkit-scrollbar { width: 3px; }
+  #results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .result-card {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .result-card.treasure {
+    border-color: rgba(212,160,23,0.5);
+    background: linear-gradient(135deg, rgba(212,160,23,0.07), var(--dark2));
+  }
+  .result-card.treasure::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  }
+
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+  .result-tag {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+  }
+  .result-tag.find { background: rgba(212,160,23,0.2); color: var(--gold); }
+  .result-tag.clear { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+  .result-time { font-size: 11px; color: var(--muted); }
+  .result-text { font-size: 13px; line-height: 1.55; color: var(--text); }
+  .result-value { margin-top: 6px; font-size: 12px; color: var(--gold-light); font-weight: 600; }
+
+  .item-block { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(212,160,23,0.12); }
+  .item-block:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+  .item-name { color: var(--gold-light); font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+
+  .empty-state { text-align: center; padding: 28px 16px; color: var(--muted); }
+  .empty-state .icon { font-size: 38px; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; line-height: 1.5; }
+
+  /* Treasure flash */
+  .treasure-flash {
+    position: fixed; inset: 0;
+    background: rgba(212,160,23,0.12);
+    pointer-events: none; opacity: 0; z-index: 500;
+  }
+  .treasure-flash.show { animation: flash 0.7s ease-out forwards; }
+  @keyframes flash { 0%{opacity:0.5} 100%{opacity:0} }
+
+  .error-msg {
+    background: rgba(231,76,60,0.1);
+    border: 1px solid rgba(231,76,60,0.25);
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-size: 12px;
+    color: #ff7f7f;
+    margin: 0 16px 10px;
+  }
+
+  /* Settings Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+  }
+  .modal-bg.show { display: flex; }
+
+  .modal {
+    width: 100%;
+    background: var(--dark2);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+  .modal h3 { font-family: 'Bebas Neue', cursive; font-size: 20px; color: var(--gold); letter-spacing: 1px; margin-bottom: 16px; }
+
+  .setting-row { margin-bottom: 14px; }
+  .setting-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+
+  .btn-danger {
+    width: 100%;
+    background: rgba(231,76,60,0.1);
+    border: 1px solid rgba(231,76,60,0.3);
+    color: #ff7f7f;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+
+  .btn-close {
+    width: 100%;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 16px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="treasure-flash" id="treasureFlash"></div>
+
+<header>
+  <div class="logo">
+    TreasureSpotter
+    <span>Car Boot AI</span>
+  </div>
+  <div class="status-pill">
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-text" id="statusText">Setup</span>
+  </div>
+</header>
+
+<!-- Install Banner -->
+<div id="installBanner">
+  <div class="install-text"><strong>Add to Home Screen</strong> — use like a real app, no store needed</div>
+  <button class="btn-install" onclick="installApp()">INSTALL</button>
+  <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h2>🔑 Get Your Free AI Key</h2>
+    <p>TreasureSpotter uses Claude AI vision to identify valuable items. You need a free API key from Anthropic.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div>Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> and sign up free</div></div>
+      <div class="step"><div class="step-num">2</div><div>Click <strong>API Keys</strong> in the left menu → <strong>Create Key</strong></div></div>
+      <div class="step"><div class="step-num">3</div><div>Copy your key (starts with <code style="color:var(--gold-light);font-size:12px;">sk-ant-</code>) and paste below</div></div>
+      <div class="step"><div class="step-num">4</div><div>Your key is stored only on your device — never shared</div></div>
+    </div>
+    <input type="password" id="apiKeyInput" placeholder="Paste your API key here..." />
+    <button class="btn-primary" onclick="saveKey()">START SPOTTING TREASURE →</button>
+  </div>
+  <div class="setup-card" style="border-color:rgba(212,160,23,0.2)">
+    <h2>🏴‍☠️ What It Spots</h2>
+    <p>Vintage toys & games · Antique furniture · Ceramics & pottery · Vintage clothing & jewellery · Signed memorabilia · Rare books · Silverware · Vinyl records · Retro electronics · Collectables of all kinds</p>
+  </div>
+</div>
+
+<!-- App Screen -->
+<div id="app-screen">
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="cam-overlay" id="camOverlay">
+      <div class="scan-line"></div>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="alert-badge" id="alertBadge"></div>
+    </div>
+  </div>
+
+  <div id="errorMsg" style="display:none" class="error-msg"></div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-val" id="statScans">0</div><div class="stat-label">Scans</div></div>
+    <div class="stat"><div class="stat-val" id="statFinds">0</div><div class="stat-label">Finds</div></div>
+    <div class="stat"><div class="stat-val" id="statSession">0m</div><div class="stat-label">Session</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-scan" id="scanBtn" onclick="doScan()">
+      <span>🔍</span> SCAN NOW
+    </button>
+    <button class="btn-auto" id="autoBtn" onclick="toggleAuto()">AUTO<br>SCAN</button>
+    <button class="btn-settings" onclick="openSettings()">⚙️</button>
+  </div>
+
+  <div class="interval-bar" id="intervalBar">
+    <label>Every:</label>
+    <button class="interval-btn active" onclick="setInt(5,'i5')" id="i5">5s</button>
+    <button class="interval-btn" onclick="setInt(10,'i10')" id="i10">10s</button>
+    <button class="interval-btn" onclick="setInt(20,'i20')" id="i20">20s</button>
+    <button class="interval-btn" onclick="setInt(30,'i30')" id="i30">30s</button>
+  </div>
+
+  <div id="results">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🏷️</div>
+      <p>Point your camera at items on a stall<br>and tap <strong>Scan Now</strong> to analyse them</p>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="modalBg" onclick="closeSettings(event)">
+  <div class="modal">
+    <h3>⚙️ Settings</h3>
+    <div class="setting-row">
+      <div class="setting-label">API KEY</div>
+      <input type="password" id="keyEdit" placeholder="sk-ant-..." style="margin-bottom:6px;"/>
+      <button class="btn-primary" style="padding:10px;font-size:14px;" onclick="updateKey()">SAVE KEY</button>
+    </div>
+    <button class="btn-danger" onclick="clearAll()">🗑 Clear All Scans &amp; Reset</button>
+    <button class="btn-close" onclick="document.getElementById('modalBg').classList.remove('show')">CLOSE</button>
+  </div>
+</div>
+
+<script>
+  // State
+  let apiKey = '';
+  let autoMode = false;
+  let autoTimer = null;
+  let scanInterval = 5000;
+  let scanning = false;
+  let totalScans = 0;
+  let totalFinds = 0;
+  let sessionStart = Date.now();
+  let deferredPrompt = null;
+
+  // PWA install
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!localStorage.getItem('installDismissed')) {
+      document.getElementById('installBanner').classList.add('show');
+    }
+  });
+
+  async function installApp() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  }
+
+  function dismissInstall() {
+    localStorage.setItem('installDismissed', '1');
+    document.getElementById('installBanner').classList.remove('show');
+  }
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  // Session timer
+  setInterval(() => {
+    const mins = Math.floor((Date.now() - sessionStart) / 60000);
+    document.getElementById('statSession').textContent = mins + 'm';
+  }, 10000);
+
+  function saveKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key.startsWith('sk-')) {
+      alert('Please enter a valid API key starting with sk-ant-');
+      return;
+    }
+    apiKey = key;
+    localStorage.setItem('ts_key', key);
+    startApp();
+  }
+
+  function startApp() {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    startCamera();
+    loadStats();
+  }
+
+  function loadStats() {
+    totalScans = parseInt(localStorage.getItem('ts_scans') || '0');
+    totalFinds = parseInt(localStorage.getItem('ts_finds') || '0');
+    document.getElementById('statScans').textContent = totalScans;
+    document.getElementById('statFinds').textContent = totalFinds;
+  }
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 } }
+      });
+      document.getElementById('video').srcObject = stream;
+      setStatus('active', 'Ready');
+    } catch (e) {
+      setStatus('', 'No Camera');
+      showError('Camera access denied. Please allow camera in your browser settings.');
+    }
+  }
+
+  function setStatus(cls, text) {
+    document.getElementById('statusDot').className = 'status-dot ' + cls;
+    document.getElementById('statusText').textContent = text;
+  }
+
+  function captureFrame() {
+    const v = document.getElementById('video');
+    const c = document.getElementById('canvas');
+    c.width = v.videoWidth || 640;
+    c.height = v.videoHeight || 480;
+    c.getContext('2d').drawImage(v, 0, 0);
+    return c.toDataURL('image/jpeg', 0.82).split(',')[1];
+  }
+
+  async function doScan() {
+    if (scanning) return;
+    scanning = true;
+
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('scanBtn').innerHTML = '<span>⏳</span> SCANNING...';
+    document.getElementById('camOverlay').classList.add('scanning');
+    setStatus('scanning', 'Scanning...');
+    document.getElementById('alertBadge').className = 'alert-badge';
+    hideError();
+
+    try {
+      const img = captureFrame();
+      const result = await analyseImage(img);
+      showResult(result);
+      totalScans++;
+      localStorage.setItem('ts_scans', totalScans);
+      document.getElementById('statScans').textContent = totalScans;
+    } catch (e) {
+      showError('Scan failed: ' + (e.message || 'Check your API key and connection.'));
+    }
+
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('scanBtn').innerHTML = '<span>🔍</span> SCAN NOW';
+    document.getElementById('camOverlay').classList.remove('scanning');
+    setStatus('active', autoMode ? 'Auto Scanning' : 'Ready');
+    scanning = false;
+  }
+
+  async function analyseImage(base64) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+            { type: 'text', text: `You are an expert antique dealer and collectables specialist helping someone at a UK car boot sale spot valuable items worth buying to resell or keep.
+
+Analyse this image carefully. Look for items that could be worth money such as:
+- Antiques and vintage items (pre-1980s)
+- Collectables (toys, figurines, badges, trading cards, die-cast)
+- Vintage clothing, jewellery, accessories
+- Ceramics, pottery, Wedgwood, Royal Doulton, etc.
+- Vinyl records, vintage electronics
+- Signed memorabilia, sports collectables
+- Rare or first edition books
+- Silverware, pewter, brass items
+- Brand name vintage (Barbour, Burberry, etc.)
+- Board games, vintage puzzles in good condition
+
+Respond ONLY in this exact JSON format, no extra text:
+{
+  "hasTreasure": true or false,
+  "items": [
+    {
+      "name": "Specific item name",
+      "reason": "Why it could be valuable - be specific (1-2 sentences)",
+      "estimatedValue": "e.g. £15-£40",
+      "confidence": "high/medium/low"
+    }
+  ],
+  "summary": "One sentence. If nothing valuable seen, say so clearly."
+}
+
+Only list items you can actually see. If image is unclear/blurry, note in summary. Be honest - not everything is valuable.` }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error?.message || 'API error ' + res.status);
+    }
+
+    const data = await res.json();
+    const txt = data.content[0].text;
+    try {
+      return JSON.parse(txt.replace(/```json|```/g,'').trim());
+    } catch {
+      return { hasTreasure: false, items: [], summary: txt.substring(0, 150) };
+    }
+  }
+
+  function showResult(r) {
+    document.getElementById('emptyState').style.display = 'none';
+    const badge = document.getElementById('alertBadge');
+    const time = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+    const card = document.createElement('div');
+
+    if (r.hasTreasure && r.items?.length > 0) {
+      document.getElementById('treasureFlash').classList.remove('show');
+      void document.getElementById('treasureFlash').offsetWidth;
+      document.getElementById('treasureFlash').classList.add('show');
+
+      badge.textContent = '💰 POTENTIAL FIND!';
+      badge.className = 'alert-badge treasure show';
+
+      totalFinds++;
+      localStorage.setItem('ts_finds', totalFinds);
+      document.getElementById('statFinds').textContent = totalFinds;
+
+      card.className = 'result-card treasure';
+      const itemsHtml = r.items.map(it => `
+        <div class="item-block">
+          <div class="item-name">🏷️ ${it.name}</div>
+          <div class="result-text">${it.reason}</div>
+          ${it.estimatedValue ? `<div class="result-value">Est. ${it.estimatedValue} · ${it.confidence} confidence</div>` : ''}
+        </div>
+      `).join('');
+
+      card.innerHTML = `
+        <div class="result-header">
+          <span class="result-tag find">💰 Find!</span>
+          <span class="result-time">${time}</span>
+        </div>
+        ${itemsHtml}
+        <div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:4px;">${r.summary}</div>
+      `;
+    } else {
+      badge.textContent = '✓ Nothing notable';
+      badge.className = 'alert-badge nothing show';
+
+      card.className = 'result-card';
+      card.innerHTML = `
+        <div class="result-header">
+          <span class="result-tag clear">Nothing Notable</span>
+          <span class="result-time">${time}</span>
+        </div>
+        <div class="result-text">${r.summary || 'No valuable items detected.'}</div>
+      `;
+    }
+
+    const res = document.getElementById('results');
+    res.insertBefore(card, res.firstChild);
+    const cards = res.querySelectorAll('.result-card');
+    if (cards.length > 15) cards[cards.length-1].remove();
+
+    setTimeout(() => { badge.className = 'alert-badge'; }, 3500);
+  }
+
+  function toggleAuto() {
+    autoMode = !autoMode;
+    document.getElementById('autoBtn').className = autoMode ? 'btn-auto active' : 'btn-auto';
+    document.getElementById('intervalBar').className = autoMode ? 'interval-bar show' : 'interval-bar';
+
+    if (autoMode) {
+      setStatus('active', 'Auto Scanning');
+      scheduleNext();
+    } else {
+      clearTimeout(autoTimer);
+      setStatus('active', 'Ready');
+    }
+  }
+
+  function scheduleNext() {
+    if (!autoMode) return;
+    autoTimer = setTimeout(async () => { await doScan(); scheduleNext(); }, scanInterval);
+  }
+
+  function setInt(s, id) {
+    scanInterval = s * 1000;
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showError(m) { const e = document.getElementById('errorMsg'); e.textContent = m; e.style.display = 'block'; }
+  function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+
+  function openSettings() {
+    document.getElementById('keyEdit').value = apiKey;
+    document.getElementById('modalBg').classList.add('show');
+  }
+
+  function closeSettings(e) { if (e.target === document.getElementById('modalBg')) document.getElementById('modalBg').classList.remove('show'); }
+
+  function updateKey() {
+    const k = document.getElementById('keyEdit').value.trim();
+    if (!k.startsWith('sk-')) { alert('Invalid key'); return; }
+    apiKey = k;
+    localStorage.setItem('ts_key', k);
+    document.getElementById('modalBg').classList.remove('show');
+  }
+
+  function clearAll() {
+    if (!confirm('Clear all scan history and stats?')) return;
+    localStorage.removeItem('ts_scans');
+    localStorage.removeItem('ts_finds');
+    totalScans = 0; totalFinds = 0;
+    document.getElementById('statScans').textContent = '0';
+    document.getElementById('statFinds').textContent = '0';
+    document.getElementById('results').innerHTML = `<div class="empty-state" id="emptyState"><div class="icon">🏷️</div><p>Point your camera at items on a stall<br>and tap <strong>Scan Now</strong> to analyse them</p></div>`;
+    document.getElementById('modalBg').classList.remove('show');
+  }
+
+  // Init
+  window.onload = () => {
+    const saved = localStorage.getItem('ts_key');
+    if (saved) { apiKey = saved; startApp(); }
+  };
+</script>
+</body>
+</html>
